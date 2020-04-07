@@ -10,7 +10,7 @@ require('dotenv').config();
  * Run Cron by Schedule
  */
 if (process.env.PROCESS_MODE === 'client') {
-    cron.schedule(process.env.CRON_SCHEDULE, (res,s) => {
+    cron.schedule(process.env.CRON_SCHEDULE, () => {
         runCron();
     });
 }else{
