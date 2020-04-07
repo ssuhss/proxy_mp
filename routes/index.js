@@ -1,60 +1,62 @@
-var express = require('express');
-var mongoose = require('mongoose');
-var axios = require('axios');
-var cron = require('node-cron');
-var router = express.Router();
-var Schema = mongoose.Schema;
-mongoose.connect('mongodb://127.0.0.1/mercadopago', {useNewUrlParser: true, useUnifiedTopology: true});
-
-var notificationSchema = new Schema({
-    url: {type: String},
-    params: JSON,
-    body: String,
-    method: String,
-    date: {
-        type: Date,
-        default: Date.now
-    },
-    read: Boolean
-}, {collection: 'notification'});
-
-var Notification = mongoose.model('Notification', notificationSchema);
+let express = require('express');
+let mongoose = require('mongoose');
+let axios = require('axios');
+let cron = require('node-cron');
+let router = express.Router();
+let Schema = mongoose.Schema;
+require('dotenv').config();
 
 /**
  * Run Cron by Schedule
  */
-if (process.env.PROCESS_MODE == 'client') {
-    cron.schedule(process.env.CRON_SCHEDULE, () => {
+if (process.env.PROCESS_MODE === 'client') {
+    cron.schedule(process.env.CRON_SCHEDULE, (res,s) => {
         runCron();
-        res.status(200).send({message: 'Cron success!'});
     });
+}else{
+    mongoose.connect('mongodb://127.0.0.1/mercadopago', {useNewUrlParser: true, useUnifiedTopology: true});
+
+    let notificationSchema = new Schema({
+        url: {type: String},
+        params: JSON,
+        body: String,
+        method: String,
+        date: {
+            type: Date,
+            default: Date.now
+        },
+        read: Boolean
+    }, {collection: 'notification'});
+
+    var Notification = mongoose.model('Notification', notificationSchema);
 }
 
 /**
  * Run Cron
  */
 function runCron() {
-    console.log(process.env.CRON_QTY);
     axios.get(process.env.URL_SERVER + '/notification/read/0/limit/' + process.env.CRON_QTY).then(response => {
 
-        var body = response.data;
+        let body = response.data;
         body.forEach(function (entry) {
-
-            if (entry.method == 'POST') {
+            if (entry.method === 'POST') {
                 axios.post(process.env.URL_LOCAL + entry.url, {
                     params: entry.params
-                }).then(function (response) {
+                }).then(function () {
                     axios.get(process.env.URL_SERVER + '/notification/update/' + entry._id + '/read');
+                }).catch(function (error) {
+                    //console.log(error);
                 });
 
             } else {
                 axios.get(process.env.URL_LOCAL + entry.url, {
                     params: entry.params
-                }).then(function (response) {
+                }).then(function () {
                     axios.get(process.env.URL_SERVER + '/notification/update/' + entry._id + '/read');
+                }).catch(function (error) {
+                    //console.log(error);
                 });
             }
-
         });
     })
 }
@@ -63,6 +65,9 @@ function runCron() {
  * Block Favicon.ico
  */
 router.get('/favicon.ico', function (req, res, next) {
+    res.status(200).send({message: 'Favicon'});
+});
+router.post('/favicon.ico', function (req, res, next) {
     res.status(200).send({message: 'Favicon'});
 });
 
@@ -121,6 +126,7 @@ router.get('notification/:id/', async function (req, res, next) {
  * Run Cron
  */
 router.get('/cron/', async function (req, res, next) {
+    res.header('Cache-Control', 'no-cache, no-store, must-revalidate');
     runCron();
     res.status(200).send({message: 'Cron success!'});
 });
@@ -129,7 +135,7 @@ router.get('/cron/', async function (req, res, next) {
 /**
  * Save Notification
  */
-router.post('/mercadopago/*/', async function (req, res, next) {
+router.post('/mercadopago/*/', async function (req, res) {
     var params = req.params;
     var notificationRoute = 'mercadopago/' + params[0];
 
@@ -140,7 +146,7 @@ router.post('/mercadopago/*/', async function (req, res, next) {
         body += chunk.toString();
     });
     req.on('end', () => {
-        var item = {
+        let item = {
             url: notificationRoute,
             params: query,
             body: body,
@@ -148,7 +154,7 @@ router.post('/mercadopago/*/', async function (req, res, next) {
             date: Date.now(),
             read: false
         };
-        var data = new Notification(item);
+        let data = new Notification(item);
         data.save();
     });
     res.status(200).send({message: 'Insert OK'});
