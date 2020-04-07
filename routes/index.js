@@ -14,7 +14,7 @@ if (process.env.PROCESS_MODE === 'client') {
         runCron();
     });
 } else {
-    mongoose.connect('mongodb://127.0.0.1/mercadopago', {useNewUrlParser: true, useUnifiedTopology: true});
+    mongoose.connect('mongodb://127.0.0.1/mercadopago', {useNewUrlParser: true, useUnifiedTopology: true, checkKeys:false});
 
     let notificationSchema = new Schema({
         url: {type: String},
