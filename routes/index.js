@@ -13,7 +13,7 @@ if (process.env.PROCESS_MODE === 'client') {
     cron.schedule(process.env.CRON_SCHEDULE, () => {
         runCron();
     });
-}else{
+} else {
     mongoose.connect('mongodb://127.0.0.1/mercadopago', {useNewUrlParser: true, useUnifiedTopology: true});
 
     let notificationSchema = new Schema({
@@ -59,6 +59,32 @@ function runCron() {
             }
         });
     })
+}
+
+/**
+ * Insert Item
+ */
+function insertItem(req, route) {
+    let params = req.params;
+    let notificationRoute = route + params[0];
+    let query = req.query;
+    let method = req.method;
+    let body = '';
+    req.on('data', chunk => {
+        body += chunk.toString();
+    });
+    req.on('end', () => {
+        let item = {
+            url: notificationRoute,
+            params: query,
+            body: body,
+            method: method,
+            date: Date.now(),
+            read: false
+        };
+        let data = new Notification(item);
+        data.save();
+    });
 }
 
 /**
@@ -136,27 +162,15 @@ router.get('/cron/', async function (req, res, next) {
  * Save Notification
  */
 router.post('/mercadopago/*/', async function (req, res) {
-    var params = req.params;
-    var notificationRoute = 'mercadopago/' + params[0];
+    insertItem(req, 'mercadopago/');
+    res.status(200).send({message: 'Insert OK'});
+});
 
-    var query = req.query;
-    var method = req.method;
-    var body = '';
-    req.on('data', chunk => {
-        body += chunk.toString();
-    });
-    req.on('end', () => {
-        let item = {
-            url: notificationRoute,
-            params: query,
-            body: body,
-            method: method,
-            date: Date.now(),
-            read: false
-        };
-        let data = new Notification(item);
-        data.save();
-    });
+/**
+ * Save All request
+ */
+router.all('/*/', async function (req, res) {
+    insertItem(req, '/');
     res.status(200).send({message: 'Insert OK'});
 });
 
