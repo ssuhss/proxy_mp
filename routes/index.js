@@ -31,6 +31,27 @@ if (process.env.PROCESS_MODE === 'client') {
     var Notification = mongoose.model('Notification', notificationSchema);
 }
 
+function getParams(params) {
+
+    let parameters = JSON.parse(params);
+    let qty = Object.keys(parameters).length;
+    let i = 0;
+    let param = '';
+    for(let key in parameters) {
+        if(i === 0){
+            param += '?';
+        }
+        param += key+'='+parameters[key];
+        i++;
+
+        if(i !== qty){
+            param += '&';
+        }
+    }
+
+    return param;
+}
+
 /**
  * Run Cron
  */
@@ -38,9 +59,14 @@ function runCron() {
     axios.get(process.env.URL_SERVER + '/notification/read/0/limit/' + process.env.CRON_QTY).then(response => {
 
         let body = response.data;
+        let param = '';
+
         body.forEach(function (entry) {
+
+            let param = getParams(entry.params);
+
             if (entry.method === 'POST') {
-                axios.post(process.env.URL_LOCAL + entry.url, {
+                axios.post(process.env.URL_LOCAL + entry.url + param, {
                     params: JSON.parse(entry.params)
                 }).then(function () {
                     axios.get(process.env.URL_SERVER + '/notification/update/' + entry._id + '/read');
@@ -49,7 +75,7 @@ function runCron() {
                 });
 
             } else {
-                axios.get(process.env.URL_LOCAL + entry.url, {
+                axios.get(process.env.URL_LOCAL + entry.url + param, {
                     params: JSON.parse(entry.params)
                 }).then(function () {
                     axios.get(process.env.URL_SERVER + '/notification/update/' + entry._id + '/read');
