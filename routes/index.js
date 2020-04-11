@@ -18,7 +18,7 @@ if (process.env.PROCESS_MODE === 'client') {
 
     let notificationSchema = new Schema({
         url: String,
-        params:  String,
+        params: String,
         body: String,
         method: String,
         date: {
@@ -37,14 +37,14 @@ function getParams(params) {
     let qty = Object.keys(parameters).length;
     let i = 0;
     let param = '';
-    for(let key in parameters) {
-        if(i === 0){
+    for (let key in parameters) {
+        if (i === 0) {
             param += '?';
         }
-        param += key+'='+parameters[key];
+        param += key + '=' + parameters[key];
         i++;
 
-        if(i !== qty){
+        if (i !== qty) {
             param += '&';
         }
     }
@@ -59,12 +59,8 @@ function runCron() {
     axios.get(process.env.URL_SERVER + '/notification/read/0/limit/' + process.env.CRON_QTY).then(response => {
 
         let body = response.data;
-        let param = '';
-
         body.forEach(function (entry) {
-
             let param = getParams(entry.params);
-
             if (entry.method === 'POST') {
                 axios.post(process.env.URL_LOCAL + entry.url + param, {
                     params: JSON.parse(entry.params)
