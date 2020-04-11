@@ -17,8 +17,8 @@ if (process.env.PROCESS_MODE === 'client') {
     mongoose.connect('mongodb://127.0.0.1/mercadopago', {useNewUrlParser: true, useUnifiedTopology: true});
 
     let notificationSchema = new Schema({
-        url: {type: String},
-        params: {type: JSON, checkKeys: false},
+        url: String,
+        params:  String,
         body: String,
         method: String,
         date: {
@@ -41,7 +41,7 @@ function runCron() {
         body.forEach(function (entry) {
             if (entry.method === 'POST') {
                 axios.post(process.env.URL_LOCAL + entry.url, {
-                    params: entry.params
+                    params: JSON.parse(entry.params)
                 }).then(function () {
                     axios.get(process.env.URL_SERVER + '/notification/update/' + entry._id + '/read');
                 }).catch(function (error) {
@@ -50,7 +50,7 @@ function runCron() {
 
             } else {
                 axios.get(process.env.URL_LOCAL + entry.url, {
-                    params: entry.params
+                    params: JSON.parse(entry.params)
                 }).then(function () {
                     axios.get(process.env.URL_SERVER + '/notification/update/' + entry._id + '/read');
                 }).catch(function (error) {
@@ -76,7 +76,7 @@ function insertItem(req, route) {
     req.on('end', () => {
         let item = {
             url: notificationRoute,
-            params: query,
+            params: JSON.stringify(query),
             body: body,
             method: method,
             date: Date.now(),
@@ -162,7 +162,7 @@ router.get('/cron/', async function (req, res, next) {
  * Save Notification
  */
 router.post('/mercadopago/*/', async function (req, res) {
-    insertItem(req, 'mercadopago/');
+    insertItem(req, '/mercadopago/');
     res.status(200).send({message: 'Insert OK'});
 });
 
